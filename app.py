@@ -1,25 +1,34 @@
+from ast import IsNot
 import typer
 import os
+import requests
+import json
 
 # command line interface object
 cli = typer.Typer()
 
 # SOLR predefined commands
 SOLR_START_SCHEMALESS = 'cd $SOLR_HOME && ./solr start -e schemaless'
-SOLR_CREATE_COLLECTION = "cd $SOLR_HOME && ./solr create -c %s -d sample_techproducts_configs -n %s_configs"
+SOLR_CREATE_COLLECTION = "cd $SOLR_HOME && ./solr create -c %s -d sample_techproducts_configs -n %s_configs -shards %d -replicationFactor %d"
 SOLR_STOP_ALL = 'cd $SOLR_HOME && ./solr stop -all'
 SOLR_START_COLLECTION = 'cd $SOLR_HOME && ./solr start -e %s'
 
 # create collection with sample_techproducts_configs 
 # these configs support all datatypes and fileformats already
 @cli.command()
-def create(collection_name: str = typer.Argument
-                        (..., help="name of the new collection")):
+def create(name: str = typer.Option
+                        (..., "--name", "-n", help="name of the new collection"),
+            shards: int = typer.Option
+                        (..., "--shards", "-s", help="number of shards"),
+            replicas: int = typer.Option
+                        (..., "--replicas", "-r", help="number of replicas per shard")):
+    
     start_solr_default()
 
-    typer.echo(f'\n\n######### solr is running, now create collection with the name: {collection_name} #########\n\n')
+    typer.echo(f'\n\n######### solr is running, now create collection with the name: {name} #########\n\n')
     
-    values = (collection_name, collection_name)
+    values = (name, name, shards, replicas)
+
     os.system(SOLR_CREATE_COLLECTION %values)
 
     typer.echo(f'\n\n######### collection created, now add some files ;) #########\n\n')
@@ -55,15 +64,34 @@ def add_folder(path: str):
 def add_file(path: str):
     typer.echo(f'add file @, {path}')
 
-# curl "http://localhost:8983/solr/techproducts/select?q=Invariant" 
 @cli.command()
-def search(query: str):
-    typer.echo(f'search for: {query}')
+def search(collection_name: str = typer.Option
+                        (..., "--collection", "-c", help="name of the collection"),
+            query: str = typer.Option
+                        (..., "--query", "-q", help="search phrase")):
 
-    results = solr.search(query)
-    typer.echo("Saw {0} result(s).".format(len(results)))
-    for result in results:
-        typer.echo("The title is '{0}'.".format(result))
+    q = 'http://localhost:8983/solr/%s/select?hl=true&q="%s"'
+    
+    r = requests.get(q %(collection_name, query))
+
+    if "ERROR 404" in r.text:
+        typer.echo(f"collection: {collection_name} not found, try again!")
+        return
+        
+    res = json.loads(r.text)
+    num_found = res['response']['numFound']
+    hl = res['highlighting']
+
+    typer.echo(f'documents found: {num_found}\n')
+    if (num_found > 0):
+        max_len = len(max(hl, key=len))
+
+        print("{:<90} {:<10}".format('Document','Pages'))
+
+        for i in hl:
+            print("{:<90} {:<10}".format(i, "{4, 5, 8}"))
+        
+    
 
 if __name__ == '__main__':
     cli()
