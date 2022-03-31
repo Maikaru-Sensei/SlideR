@@ -13,6 +13,8 @@ SOLR_CREATE_COLLECTION = "cd $SOLR_HOME && ./solr create -c %s -d sample_techpro
 SOLR_STOP_ALL = 'cd $SOLR_HOME && ./solr stop -all'
 SOLR_START_COLLECTION = 'cd $SOLR_HOME && ./solr start -e %s'
 
+SOLR_ADD_FILE = 'cd $SOLR_HOME && curl http://localhost:8983/solr/%s/update/extract?literal.id=doc1&uprefix=ignored_&commit=true -F "myFile=@%s"'
+
 # create collection with sample_techproducts_configs 
 # these configs support all datatypes and fileformats already
 @cli.command()
@@ -62,7 +64,11 @@ def add_folder(path: str):
 # curl 'http://localhost:8983/solr/techproducts/update/extract?literal.id=doc1&uprefix=ignored_&commit=true' -F "myFile=@example/exampledocs/solr-word.pdf"
 @cli.command()
 def add_file(path: str):
-    typer.echo(f'add file @, {path}')
+
+if os.path.isfile(path):
+    typer.echo(f'add file @, {path},test')
+    os.system(SOLR_ADD_FILE %path)
+    typer.echo(f'Added')
 
 @cli.command()
 def search(collection_name: str = typer.Option
