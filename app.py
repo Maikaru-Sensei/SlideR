@@ -11,9 +11,8 @@ cli = typer.Typer()
 SOLR_START_SCHEMALESS = 'cd $SOLR_HOME && ./solr start -e schemaless'
 SOLR_CREATE_COLLECTION = "cd $SOLR_HOME && ./solr create -c %s -d sample_techproducts_configs -n %s_configs -shards %d -replicationFactor %d"
 SOLR_STOP_ALL = 'cd $SOLR_HOME && ./solr stop -all'
-SOLR_START_COLLECTION = 'cd $SOLR_HOME && ./solr start -e %s'
 
-SOLR_ADD_FILE = 'cd $SOLR_HOME && curl http://localhost:8983/solr/%s/update/extract?literal.id=doc1&uprefix=ignored_&commit=true -F "myFile=@%s"'
+SOLR_ADD_FILE = 'cd $SOLR_HOME && curl http://localhost:8983/solr/slides/update/extract?literal.id=doc1&uprefix=ignored_&commit=true -F "myFile=@%s"'
 
 # create collection with sample_techproducts_configs 
 # these configs support all datatypes and fileformats already
@@ -43,7 +42,7 @@ def start_solr_default():
     os.system(SOLR_START_SCHEMALESS)
 
 @cli.command()
-def start(collection_name: str, stop_all: bool = typer.Option(
+def start(stop_all: bool = typer.Option(
                 ..., 
                 prompt="Do you want to stop other nodes?",
                 help="stops all current running Solr nodes")):
@@ -52,10 +51,8 @@ def start(collection_name: str, stop_all: bool = typer.Option(
         typer.echo('######### stopping all other solr nodes ... #########')
         os.system(SOLR_STOP_ALL)
 
-    typer.echo('######### starting collection {collection_name}... #########')
-    value = (collection_name)
-    typer.echo(SOLR_START_COLLECTION %value)
-    os.system(SOLR_START_COLLECTION %value)
+    typer.echo('######### starting Solr ... #########')
+    os.system(SOLR_START_SCHEMALESS)
 
 @cli.command()
 def add_folder(path: str):
@@ -65,10 +62,10 @@ def add_folder(path: str):
 @cli.command()
 def add_file(path: str):
 
-if os.path.isfile(path):
-    typer.echo(f'add file @, {path},test')
-    os.system(SOLR_ADD_FILE %path)
-    typer.echo(f'Added')
+    if os.path.isfile(path):
+        typer.echo(f'add file @, {path},test')
+        os.system(SOLR_ADD_FILE %path)
+        typer.echo(f'Added')
 
 @cli.command()
 def search(collection_name: str = typer.Option
@@ -76,8 +73,10 @@ def search(collection_name: str = typer.Option
             query: str = typer.Option
                         (..., "--query", "-q", help="search phrase")):
 
-    q = 'http://localhost:8983/solr/%s/select?hl=true&q="%s"'
+    q = 'http://localhost:8983/solr/%s/select?hl=true&q=%s~1"'
     
+    typer.echo(f'command: {q %(collection_name, query)}')
+
     r = requests.get(q %(collection_name, query))
 
     if "ERROR 404" in r.text:
