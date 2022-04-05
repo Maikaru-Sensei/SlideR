@@ -13,7 +13,7 @@ SOLR_CREATE_COLLECTION = "cd $SOLR_HOME && ./solr create -c %s -d sample_techpro
 SOLR_STOP_ALL = 'cd $SOLR_HOME && ./solr stop -all'
 SOLR_ADD_FILE = 'cd $SOLR_HOME && curl http://localhost:8983/solr/slides/update/extract?literal.id=doc1&uprefix=ignored_&commit=true -F "myFile=@%s"'
 SOLR_SEARCH = 'http://localhost:8983/solr/%s/select?hl=true&q=%s'
-SOLR_SEARCH_FUZZY = 'http://localhost:8983/solr/%s/select?hl=true&q=%s~1'
+SOLR_SEARCH_FUZZY = 'http://localhost:8983/solr/%s/select?hl=true&q=%s~%d'
 
 SOLR_ADD= 'cd $SOLR_HOME && ./post -c %s %s'
 
@@ -81,7 +81,9 @@ def printResult(result):
 def search(collection_name: str = typer.Option
                         (..., "--collection", "-c", help="name of the collection"),
             query: str = typer.Option
-                        (..., "--query", "-q", help="search phrase")):
+                        (..., "--query", "-q", help="search phrase"),
+            distinct_val:  int = typer.Option
+                   (0, "--distinct_val", "-d", help="amount of letters that can be distinct to the search phrase")):
 
     r = requests.get(SOLR_SEARCH %(collection_name, query))
 
@@ -100,7 +102,7 @@ def search(collection_name: str = typer.Option
     else:
         typer.echo('try with fuzzy search again...')
 
-        r = requests.get(SOLR_SEARCH_FUZZY %(collection_name, query))
+        r = requests.get(SOLR_SEARCH_FUZZY %(collection_name, query, distinct_val))
         res = json.loads(r.text)
         num_found = res['response']['numFound']
         hl = res['highlighting']
