@@ -87,7 +87,6 @@ def search(collection_name: str = typer.Option
                         (..., "--collection", "-c", help="name of the collection"),
             query: str = typer.Option
                         (..., "--query", "-q", help="search phrase")):
-<<<<<<< Updated upstream
 
     r = requests.get(SOLR_SEARCH %(collection_name, query))
 
@@ -116,31 +115,6 @@ def search(collection_name: str = typer.Option
             printResult(hl)
         else:
             typer.echo('still nothing found... :/')
-=======
-
-    q = 'http://localhost:8983/solr/%s/select?hl=true&q="%s"'
-    
-    r = requests.get(q %(collection_name, query))
-
-    if "ERROR 404" in r.text:
-        typer.echo(f"collection: {collection_name} not found, try again!")
-        return
-        
-    res = json.loads(r.text)
-    num_found = res['response']['numFound']
-    hl = res['highlighting']
-
-    typer.echo(f'documents found: {num_found}\n')
-    if (num_found > 0):
-        max_len = len(max(hl, key=len))
-
-        print("{:<90} {:<10}".format('Document','Pages'))
-
-        for i in hl:
-            print("{:<90} {:<10}".format(i, "{4, 5, 8}"))
->>>>>>> Stashed changes
-        
-    
 
 if __name__ == '__main__':
     cli()
