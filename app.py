@@ -15,6 +15,8 @@ SOLR_ADD_FILE = 'cd $SOLR_HOME && curl http://localhost:8983/solr/slides/update/
 SOLR_SEARCH = 'http://localhost:8983/solr/%s/select?hl=true&q=%s'
 SOLR_SEARCH_FUZZY = 'http://localhost:8983/solr/%s/select?hl=true&q=%s~1'
 
+SOLR_ADD= 'cd $SOLR_HOME && ./post -c %s %s'
+
 # create collection with sample_techproducts_configs 
 # these configs support all datatypes and fileformats already
 @cli.command()
@@ -56,9 +58,13 @@ def start(stop_all: bool = typer.Option(
     os.system(SOLR_START_SCHEMALESS)
 
 @cli.command()
-def add_folder(path: str):
-    typer.echo(f'add folder @, {path}')
+def add(collection_name: str = typer.Option
+                        (..., "--collection", "-c", help="name of the collection"),
+                       path: str = typer.Option
+                        (..., "--path", "-p", help="path to file")):
+                        
 
+# curl 'http://localhost:8983/solr/techproducts/update/extract?literal.id=doc1&uprefix=ignored_&commit=true' -F "myFile=@example/exampledocs/solr-word.pdf"
 @cli.command()
 def add_file(path: str):
 
@@ -75,13 +81,13 @@ def printResult(result):
     for i in result:
         print("{:<90}".format(i))
 
-# searches a collection with the name of @collection_name
-# first search for exact term, if not found try fuzzy search
+
 @cli.command()
 def search(collection_name: str = typer.Option
                         (..., "--collection", "-c", help="name of the collection"),
             query: str = typer.Option
                         (..., "--query", "-q", help="search phrase")):
+<<<<<<< Updated upstream
 
     r = requests.get(SOLR_SEARCH %(collection_name, query))
 
@@ -110,6 +116,29 @@ def search(collection_name: str = typer.Option
             printResult(hl)
         else:
             typer.echo('still nothing found... :/')
+=======
+
+    q = 'http://localhost:8983/solr/%s/select?hl=true&q="%s"'
+    
+    r = requests.get(q %(collection_name, query))
+
+    if "ERROR 404" in r.text:
+        typer.echo(f"collection: {collection_name} not found, try again!")
+        return
+        
+    res = json.loads(r.text)
+    num_found = res['response']['numFound']
+    hl = res['highlighting']
+
+    typer.echo(f'documents found: {num_found}\n')
+    if (num_found > 0):
+        max_len = len(max(hl, key=len))
+
+        print("{:<90} {:<10}".format('Document','Pages'))
+
+        for i in hl:
+            print("{:<90} {:<10}".format(i, "{4, 5, 8}"))
+>>>>>>> Stashed changes
         
     
 
