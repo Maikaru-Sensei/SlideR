@@ -11,8 +11,9 @@ cli = typer.Typer()
 SOLR_START_SCHEMALESS = 'cd $SOLR_HOME && ./solr start -e schemaless'
 SOLR_CREATE_COLLECTION = "cd $SOLR_HOME && ./solr create -c %s -d sample_techproducts_configs -n %s_configs -shards %d -replicationFactor %d"
 SOLR_STOP_ALL = 'cd $SOLR_HOME && ./solr stop -all'
-
 SOLR_ADD_FILE = 'cd $SOLR_HOME && curl http://localhost:8983/solr/slides/update/extract?literal.id=doc1&uprefix=ignored_&commit=true -F "myFile=@%s"'
+SOLR_SEARCH = 'http://localhost:8983/solr/%s/select?hl=true&q=%s'
+SOLR_SEARCH_FUZZY = 'http://localhost:8983/solr/%s/select?hl=true&q=%s~1'
 
 # create collection with sample_techproducts_configs 
 # these configs support all datatypes and fileformats already
@@ -67,17 +68,22 @@ def add_file(path: str):
         os.system(SOLR_ADD_FILE %path)
         typer.echo(f'Added')
 
+def printResult(result):
+    max_len = len(max(result, key=len))
+
+    print("{:<90}".format('Document(s)'))
+
+    for i in result:
+        print("{:<90}".format(i))
+
+
 @cli.command()
 def search(collection_name: str = typer.Option
                         (..., "--collection", "-c", help="name of the collection"),
             query: str = typer.Option
                         (..., "--query", "-q", help="search phrase")):
 
-    q = 'http://localhost:8983/solr/%s/select?hl=true&q=%s~1"'
-    
-    typer.echo(f'command: {q %(collection_name, query)}')
-
-    r = requests.get(q %(collection_name, query))
+    r = requests.get(SOLR_SEARCH %(collection_name, query))
 
     if "ERROR 404" in r.text:
         typer.echo(f"collection: {collection_name} not found, try again!")
@@ -89,12 +95,20 @@ def search(collection_name: str = typer.Option
 
     typer.echo(f'documents found: {num_found}\n')
     if (num_found > 0):
-        max_len = len(max(hl, key=len))
+        printResult(hl)
+    else:
+        typer.echo('try with fuzzy search again...')
 
-        print("{:<90} {:<10}".format('Document','Pages'))
+        r = requests.get(SOLR_SEARCH_FUZZY %(collection_name, query))
+        res = json.loads(r.text)
+        num_found = res['response']['numFound']
+        hl = res['highlighting']
 
-        for i in hl:
-            print("{:<90} {:<10}".format(i, "{4, 5, 8}"))
+        if (num_found > 0):
+            typer.echo(f'documents found: {num_found}\n')
+            printResult(hl)
+        else:
+            typer.echo('still nothing found... :/')
         
     
 
