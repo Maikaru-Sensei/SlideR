@@ -59,7 +59,6 @@ def start(stop_all: bool = typer.Option(
 def add_folder(path: str):
     typer.echo(f'add folder @, {path}')
 
-# curl 'http://localhost:8983/solr/techproducts/update/extract?literal.id=doc1&uprefix=ignored_&commit=true' -F "myFile=@example/exampledocs/solr-word.pdf"
 @cli.command()
 def add_file(path: str):
 
@@ -76,7 +75,8 @@ def printResult(result):
     for i in result:
         print("{:<90}".format(i))
 
-
+# searches a collection with the name of @collection_name
+# first search for exact term, if not found try fuzzy search
 @cli.command()
 def search(collection_name: str = typer.Option
                         (..., "--collection", "-c", help="name of the collection"),
@@ -85,6 +85,7 @@ def search(collection_name: str = typer.Option
 
     r = requests.get(SOLR_SEARCH %(collection_name, query))
 
+    # collection could not be found
     if "ERROR 404" in r.text:
         typer.echo(f"collection: {collection_name} not found, try again!")
         return
