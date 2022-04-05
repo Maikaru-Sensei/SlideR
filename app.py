@@ -62,16 +62,11 @@ def add(collection_name: str = typer.Option
                         (..., "--collection", "-c", help="name of the collection"),
                        path: str = typer.Option
                         (..., "--path", "-p", help="path to file")):
-                        
+                          
+     typer.echo(f'add file @, {path}')
+     os.system(SOLR_ADD %(collection_name, path))
+     typer.echo(f'Added')
 
-# curl 'http://localhost:8983/solr/techproducts/update/extract?literal.id=doc1&uprefix=ignored_&commit=true' -F "myFile=@example/exampledocs/solr-word.pdf"
-@cli.command()
-def add_file(path: str):
-
-    if os.path.isfile(path):
-        typer.echo(f'add file @, {path},test')
-        os.system(SOLR_ADD_FILE %path)
-        typer.echo(f'Added')
 
 def printResult(result):
     max_len = len(max(result, key=len))
