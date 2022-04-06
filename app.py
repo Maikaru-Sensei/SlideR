@@ -95,23 +95,25 @@ def search(collection_name: str = typer.Option
     res = json.loads(r.text)
     num_found = res['response']['numFound']
     hl = res['highlighting']
-
-    typer.echo(f'documents found: {num_found}\n')
-    if (num_found > 0):
+    if(distinct_val <= 0):
+        typer.echo(f'documents found: {num_found}\n')
+    if (num_found > 0 ):
         printResult(hl)
-    else:
-        typer.echo('try with fuzzy search again...')
+    elif(distinct_val <= 0):
+        typer.echo('try with fuzzy search...')
+    else: 
 
         r = requests.get(SOLR_SEARCH_FUZZY %(collection_name, query, distinct_val))
         res = json.loads(r.text)
         num_found = res['response']['numFound']
         hl = res['highlighting']
-
-        if (num_found > 0):
-            typer.echo(f'documents found: {num_found}\n')
+        typer.echo(f'documents found: {num_found}\n')
+        if (num_found > 0 ):
             printResult(hl)
         else:
-            typer.echo('still nothing found... :/')
+            if (distinct_val > 0):
+                typer.echo('still nothing found... :/')
+                typer.echo('try using a higher value')
 
 if __name__ == '__main__':
     cli()
